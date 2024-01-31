@@ -1,6 +1,8 @@
 # Exome-Parascopy
 
-Exome-Parascopy is a computational method for accurate estimation of copy number for duplicated genes using exome sequencing.
+Exome-Parascopy is a computational method for accurately estimating the copy numbers for duplicated genes using exome sequence data from multiple samples.
+
+### Process overview
 
 ![alt text](./docs/figure1.png "Algorithm overview")
 
