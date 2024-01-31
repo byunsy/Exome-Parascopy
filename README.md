@@ -5,7 +5,7 @@
 
 We can extract read count data from all input files and construct a count matrix (or read depth matrix) across all exons and all input samples (BAM files)
 ```
-time python run_getBamCounts.py \
+python run_getBamCounts.py \
 -i EUR.bam.fp.list \
 -o results-EUR \
 -x exons/exons.hg38.noalt.bed \
@@ -15,7 +15,7 @@ time python run_getBamCounts.py \
 ### Gene-specific count matrix
 Using Parascopy's pool function, we can re-map reads initially aligned to Copy B to Copy A. This will allow us to obtain an aggregate read counts for the duplicated gene of interest.
 ```
-time python run_paras_pool.py \
+python run_paras_pool.py \
 -i EUR.bam.fp.colons.list \
 -o results-EUR-SMN1 \
 -f data/GCA_000001405.15_GRCh38_no_alt_plus_hs38d1_analysis_set.fna \
@@ -23,9 +23,9 @@ time python run_paras_pool.py \
 -g hg38 \
 -l SMN1 \
 -r chr5:70895669-70958942 \
--@ 8
+-@ 16
 ```
-Here, it is important that each line of input list must contain filepath and sample name separated by two colons (eg. `data/bams/HG0001.exome.bam::HG001`)
+Here, it is important that each line of input list must contain filepath and sample name separated by two colons. For example, every line must be in the following format: `data/bams/HG0001.exome.bam::HG001`.
 
 
 ### Reference set
@@ -48,20 +48,20 @@ python get_true_cn.py ground-truths/res.samples.EUR.SMN1.bed -d 1 > EUR.SMN1.tru
 ```
 where `-d` represents the 0-based index.
 
-### Run main algorithm 
+### Main algorithm 
 
 Now, we can run the main algorithm and also obtain the general accuracy statistics ouput using the following command:
 ```
 python main.py \
 -i EUR.SMN1.counts.exons.tsv \
--o EUR.acc.out \
+-o EUR.SMN1.out \
 -p EUR.betafit.out \
 --truth EUR.SMN1.truecn.out \
 -c 4
 ```
 where `-c` represents the normal reference aggregate copy number. 
 
-This will produce an output file like `EUR.acc.out` which will contain comprehensive summaries of `connected components`, `fractionalCN`, `integerCN`, `trueCN`, etc. 
+This will produce an output file like `EUR.SMN1.out` which will contain summaries of `connected components`, `fractionalCN`, `integerCN`, `trueCN`, etc. 
 
 ### Benchmark
 
