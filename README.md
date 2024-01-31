@@ -1,6 +1,32 @@
 # Exome-Parascopy
 
 
+### Count matrix
+
+We can extract read count data from all input files and construct a count matrix (or read depth matrix) across all exons and all input samples (BAM files)
+```
+time python run_getBamCounts.py \
+-i EUR.bam.fp.list \
+-o results-EUR \
+-x exons/exons.hg38.noalt.bed \
+-t 16
+```
+
+### Gene-specific count matrix
+Using Parascopy's pool function, we can re-map reads initially aligned to Copy B to Copy A. This will allow us to obtain an aggregate read counts for the duplicated gene of interest.
+```
+time python run_paras_pool.py \
+-i EUR.bam.fp.colons.list \
+-o results-EUR-SMN1 \
+-f data/GCA_000001405.15_GRCh38_no_alt_plus_hs38d1_analysis_set.fna \
+-t data/homology_table/hg38.bed.gz \
+-g hg38 \
+-l SMN1 \
+-r chr5:70895669-70958942 \
+-@ 8
+```
+Here, it is important that each line of input list must contain filepath and sample name separated by two colons (eg. `data/bams/HG0001.exome.bam::HG001`)
+
 
 ### Reference set
 Building the reference set is an essential step for our main algorithm. This step might take some time depending on the number of input samples and number of exons.
@@ -37,7 +63,7 @@ where `-c` represents the normal reference aggregate copy number.
 
 This will produce an output file like `EUR.acc.out` which will contain comprehensive summaries of `connected components`, `fractionalCN`, `integerCN`, `trueCN`, etc. 
 
-### Benchmark: compute precision and recall
+### Benchmark
 
 To compute precision and recall of a single population or a single output file, run
 ```
