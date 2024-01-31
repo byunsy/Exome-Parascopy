@@ -1,5 +1,6 @@
 # Exome-Parascopy
 
+![alt text](./docs/figure1.png "Algorithm overview")
 
 ### Count matrix
 
