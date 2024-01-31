@@ -22,7 +22,7 @@ python get_true_cn.py ground-truths/res.samples.EUR.SMN1.bed -d 1 > EUR.SMN1.tru
 ```
 where `-d` represents the 0-based index.
 
-### Benchmark: compute accuracy stats (integerCN estimate vs. ground-truth)
+### Run main algorithm 
 
 Now, we can run the main algorithm and also obtain the general accuracy statistics ouput using the following command:
 ```
@@ -35,16 +35,16 @@ python main.py \
 ```
 where `-c` represents the normal reference aggregate copy number. 
 
-This will produce an output file like `EUR.acc.out` which will contain summaries of connected components, fractional CN, integer CN, true CN, etc. 
+This will produce an output file like `EUR.acc.out` which will contain comprehensive summaries of `connected components`, `fractionalCN`, `integerCN`, `trueCN`, etc. 
 
 ### Benchmark: compute precision and recall
 
 To compute precision and recall of a single population or a single output file, run
 ```
-python compute_prec_rec.py -i out/EUR.RHCE.out -c 4
+python compute_prec_rec.py -i EUR.SMN1.out -c 4
 ```
 
 To compute precision and recall across multiple populations or multiple files altogether, run
 ```
-python compute_prec_rec.py -I out/EUR.RHCE.out out/AFR.RHCE.out out/AMR.RHCE.out out/EAS.RHCE.out out/SAS.RHCE.out -c 4
+python compute_prec_rec.py -I EUR.SMN1.out AFR.SMN1.out AMR.SMN1.out EAS.SMN1.out SAS.SMN1.out -c 4
 ```
