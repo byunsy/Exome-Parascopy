@@ -8,6 +8,7 @@ USAGE   : python run_getBamCounts.py -i BAMLIST -o OUTDIR -x FILE -t INT
 import asyncio
 import argparse
 import subprocess
+import os,sys
 
 # Parse arguments from command-line
 parser = argparse.ArgumentParser()
@@ -36,11 +37,11 @@ print(f"Asynchronous getBamCounts() started with {MAX_PROCESSES} processes.\n")
 # Procedures
 # -----------------------------------------------------------------------------
 async def proc_count(bam_fp, sem):
-  
+    path = os.path.dirname(os.path.abspath(__file__))
     sample_id = bam_fp.split("/")[-1].split(".")[0]
     async with sem:
         proc = await asyncio.create_subprocess_exec(
-                'Rscript', 'run_ExomeDepthCount.r', 
+                'Rscript', path + '/run_ExomeDepthCount.r', 
                 '-s', bam_fp,                       # input sample BAM
                 '-o', RESULTS_DIR,                  # output directory
                 '-p', sample_id,                    # prefix for output file
