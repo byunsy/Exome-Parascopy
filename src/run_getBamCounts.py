@@ -58,7 +58,7 @@ async def proc_count(bam_fp, sem):
 
 
 def proc_merge(outdir):
-    subprocess.call([f'Rscript runExomeDepthCount_merge.r -o {outdir}'], shell=True)
+    subprocess.call([f'Rscript run_ExomeDepthCount_merge.r -o {outdir}'], shell=True)
 
 # -----------------------------------------------------------------------------
 # Main Function
