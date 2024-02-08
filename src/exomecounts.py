@@ -36,6 +36,7 @@ class ExomeData:
         self.compare = None
         self.bestcnvec = None
         self.map = []
+        self.prior = {}
 
     def construct_subset(self,comp): ## create new ExomeData object for a connected component
         subdata = ExomeData()
@@ -43,6 +44,7 @@ class ExomeData:
         subdata.betamatrix = {}
         subdata.correlations = []
         subdata.samplenames=[]
+        subdata.prior = self.prior
         subrows = []
         temp_map = [0]*self.n
         
@@ -108,7 +110,7 @@ class ExomeData:
             print('conn-comp',list_nodes)
             i += 1
     
-    def get_parameters(self,pfile,min_sum=20000): ## read the betafit.out file
+    def get_parameters(self, pfile, prior_file=None, min_sum=20000): ## read the betafit.out file
         self.means = []
         self.n = 0
         with open(pfile, 'r') as file1:
@@ -120,7 +122,6 @@ class ExomeData:
                     self.samples_index[(simple_id,0)] = int(v[1])
                     self.samplenames.append(simple_id)
                     self.n += 1
-
                     self.means.append(float(v[3]))
                     if len(v) > 4: 
                         self.correlations.append([float(a) for a in v[4].split(',')])
@@ -134,14 +135,21 @@ class ExomeData:
                     corr = float(v[6])
                     if alpha + beta > min_sum: 
                         self.betamatrix[(s1,s2)] = (alpha,beta)
+
         for i in range(self.n): 
             self.reference_sets.append([])
+
         for key,value in self.betamatrix.items(): 
             self.reference_sets[key[0]].append(key[1])
-#        for i in range(self.n): self.reference_sets[i] = self.reference_sets[i][0:4] ## sets reference-set size to 4
+        # for i in range(self.n): self.reference_sets[i] = self.reference_sets[i][0:4] ## sets reference-set size to 4
 
         self.connected_comp()
-    
+
+        # Get prior probs if provided
+        if prior_file:
+            prior = pd.read_csv(prior_file, sep="\t")
+            self.prior = prior.set_index('cn')['prob'].to_dict()
+
     def gene_counts(self,cfile):
         df = pd.read_csv(cfile,sep='\t')
         self.counts = [0]*self.n
