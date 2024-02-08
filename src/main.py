@@ -26,6 +26,7 @@ def parse_args():
     parser.add_argument("-i", "--input", required=True, help="read count file for individual gene")
     parser.add_argument("-o", "--outfile", required=True, help="path to output file")
     parser.add_argument("-p", "--params", required=True, help="path to parameters file")
+    parser.add_argument("-r", "--prior", required=False, help="path to prior probabilities file")
     parser.add_argument("--truth", required=False, help="path to file with true copy number values",default=None)
     parser.add_argument("-c", "--refcn", default=4, help="reference copy number")
     parser.add_argument("--max", default=1000, help="maximum value of penalty scale parameter")
@@ -109,8 +110,8 @@ def penalized_likelihood(self, result_start, step=20, control=None):
         #rankcc = spearmanr(np.around(result.x,2),self.trueCN)
 
         meancn = np.mean(result.x[0:self.n])
-        scalefactor = self.refCN/meancn
-        cnvec = result.x*scalefactor
+        scalefactor = self.refCN / meancn
+        cnvec = result.x * scalefactor
         varcn = np.var(result.x[0:self.n]) 
         sum_delta = sum([abs(cnvec[i]-pcnvec[i]) for i in range(self.n)])
         pcnvec = cnvec
@@ -191,12 +192,12 @@ def best_fractional(self, minCN=1.01, maxCN=10.01, control=None):
     self.cn_bounds = [(minCN,maxCN) for i in range(self.n)]
     self.graph = pairwise_graph(self)
 
-    x0 = [self.refCN]*self.n
+    x0 = [self.refCN] * self.n
     result0 = opt.minimize(fopt,
                            x0,
                            bounds=self.cn_bounds,
                            tol=1e-8,
-                           args=(self,),
+                           args=(self),
                            method='L-BFGS-B') # Nelder-Mead
     
     print('no-penalty', round(result0.fun,3), '\n', 'CN-vector', ' '.join([str(a) for a in sorted(result0.x)]),'\n')
@@ -288,7 +289,7 @@ def main():
     refCN = int(args.refcn)
 
     data = ExomeData()
-    data.get_parameters(args.params)
+    data.get_parameters(args.params, args.prior)
     data.gene_counts(args.input)
 
     if args.truth != None: 
