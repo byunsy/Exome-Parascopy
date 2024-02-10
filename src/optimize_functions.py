@@ -1,6 +1,5 @@
 import sys
 import math
-import time
 
 def fopt(x, exome_data):
     exome_data.calls += 1
@@ -33,8 +32,9 @@ def fopt(x, exome_data):
 
     #if exome_data.n < len(x): return -1*total_ll+ x[exome_data.n]*penalty
     return -1*total_ll + exome_data.Lambda*math.sqrt(penalty) #math.sqrt(penalty)
-    return -1*total_ll + exome_data.Lambda*penalty
-    print('LL', total_ll, penalty)
+
+    #return -1*total_ll + exome_data.Lambda*penalty
+    #print('LL', total_ll, penalty)
 
 
 def pairwise_graph(data, thresh=5): ## calculate likelihoods for each edge
@@ -73,6 +73,6 @@ def pairwise_graph(data, thresh=5): ## calculate likelihoods for each edge
                 d2 = best_triple[2] - best_triple[1]
                 #if d1 >= thresh*2 or d2 >= thresh*2: graph[(i,j)] = (min(d1,d2),'gt')
         #print('node',i,'CN',data.trueCN[i],data.reference_sets[i],edges)
-    print('noedges', edges.count(0), edges)
+    ###print('noedges', edges.count(0), edges)
     return graph
 

@@ -1,13 +1,15 @@
-import pandas as pd
-import numpy as np
-import os, sys
-import scipy.optimize as opt
+import os
+import sys
 import math
 import random
+import numpy as np
+import pandas as pd
 import networkx as nx
+import scipy.optimize as opt
 
 class ExomeData:
-    calls=0
+    calls = 0
+
     def __init__(self,n=0):
         self.samples_index = {}
         self.samplenames = [] ## list
@@ -57,8 +59,9 @@ class ExomeData:
             #print('map',i,subdata.n,end=' ')
             subdata.n += 1
         if len(self.correlations) > 0 : 
-            for i in range(subdata.n): subdata.correlations.append([ self.correlations[subrows[i]][j] for j in subrows ])
-        print('subdata')
+            for i in range(subdata.n): 
+                subdata.correlations.append([ self.correlations[subrows[i]][j] for j in subrows ])
+        ###print('subdata')
         for key,value in self.betamatrix.items():
             newkey = (temp_map[key[0]],temp_map[key[1]])
             subdata.betamatrix[newkey] = value
@@ -85,29 +88,31 @@ class ExomeData:
         for i in range(self.n):
             G.add_edges_from([(i,j) for j in self.reference_sets[i]])
         components = list(nx.connected_components(G))
-        i=0
+        i = 0
         #for i in range(self.n): self.components[i] = -1
+        print("\nCONNECTED COMPONENTS (undirected)")
         for comp in components:             
             list_nodes = sorted(comp)
             self.comp_list.append(len(list_nodes))
             for v in list_nodes: 
                 self.components[v] = i
-            print('conn-comp',list_nodes)
+            print(f'conn-comp-{i}: {list_nodes}')
             i += 1
     
     def connected_comp_directed(self,directed=True):
-        G=nx.DiGraph()
+        G = nx.DiGraph()
         for i in range(self.n):
             G.add_edges_from([(j,i) for j in self.reference_sets[i]])
         components = list(nx.strongly_connected_components(G))
         i = 0
         #for i in range(self.n): self.components[i] = -1
+        print("\nCONNECTED COMPONENTS (directed)")
         for comp in components:             
             list_nodes = sorted(comp)
             self.comp_list.append(len(list_nodes))
             for v in list_nodes: 
                 self.components[v] = i
-            print('conn-comp',list_nodes)
+            print(f'conn-comp-{i}: {list_nodes}')
             i += 1
     
     def get_parameters(self, pfile, prior_file=None, min_sum=20000): ## read the betafit.out file
@@ -147,6 +152,8 @@ class ExomeData:
 
         # Get prior probs if provided
         if prior_file:
+            print("\nPRIOR PROBABILITY")
+            print("- Found prior probabilities:", prior_file)
             prior = pd.read_csv(prior_file, sep="\t")
             self.prior = prior.set_index('cn')['prob'].to_dict()
 
@@ -162,7 +169,7 @@ class ExomeData:
         missing = []
         ## assumption that fifth column is the bam file names
         if 'bam' in df.columns[0] or 'bam' in df.columns[3]:
-            print('missing exon columns',file=sys.stderr)
+            print('Missing exon columns',file=sys.stderr)
             sys.exit()
         for i in range(4,df.shape[1]): 
             sample = df.columns[i].strip('\"')
@@ -183,10 +190,13 @@ class ExomeData:
                 matched += 1
             else:
                 missing.append(sample)
-        print('matched',matched,'missing',len(missing),self.counts)
+        print("\nGENE COUNTS")
+        print('- Matched:', matched)
+        print('- Missing:', len(missing))
+        ###print(self.counts)
         if matched < self.n: 
-            print('number of samples with count data is less than the number in the statistics file',matched,self.n,file=sys.stderr)
-            print('check input files',file=sys.stderr)
+            print('Number of samples with count data is less than the number in the statistics file', matched, self.n, file=sys.stderr)
+            print('Check input files', file=sys.stderr)
             sys.exit()
        
     def read_trueCN(self,filename): 
@@ -202,7 +212,10 @@ class ExomeData:
                         self.trueCN[sample_index] = CN
                     except KeyError:
                         missing += 1
-            print('trueCN',self.trueCN,missing)
+            print("\nTRUE-CN")
+            print('- TrueCN matched:', len(self.trueCN))
+            #print(self.trueCN)
+            print('- TrueCN missing:', missing)
         except FileNotFoundError: self.trueCN = None
 
 

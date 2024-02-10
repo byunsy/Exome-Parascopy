@@ -54,14 +54,14 @@ def local_updates(x, exome_data, update=True, DEBUG=False, order='optimized'):
         updates = 0
 
         if order =='randomize':
-            random.shuffle(L) ## every iteration..
+            random.shuffle(L) # for every iteration
 
         for i in L:
             current = x[i]
-            ll_list=[]
+            ll_list = []
             for c in range(1,10):
                 x[i] = c
-                ll_list.append((fopt(x,exome_data)-current_ll,c))
+                ll_list.append((fopt(x,exome_data)-current_ll, c))
             x[i] = current
             ll_list.sort()
             #print('iter',iterations,i,ll_list[0],ll_list[1],'debug')
@@ -72,7 +72,8 @@ def local_updates(x, exome_data, update=True, DEBUG=False, order='optimized'):
                 if DEBUG: 
                     print('updating', i, 'iter', iterations, ll_list[0], current_ll, 'from', current, exome_data.trueCN[i])
             elif not update:
-                print(i,ll_list[0],current_ll,'from',current,exome_data.trueCN[i])
+                print("no update")
+                ###print(i, ll_list[0], current_ll, 'from', current, exome_data.trueCN[i])
 
         iterations += 1 
         total_updates += updates
@@ -120,15 +121,15 @@ def penalized_likelihood(self, result_start, step=20, control=None):
         diffvalues = 1
         
         for i in range(self.n-1):
-            if roundedvec[i+1]-roundedvec[i] > 0.2: 
+            if roundedvec[i+1] - roundedvec[i] > 0.2: 
                 diffvalues += 1
-        print(roundedvec)
+        print("Penalty CN-vector:", roundedvec)
 
         #print('diff',diffvalues,roundedvec,self.n,diffvalues*math.log(self.n),file=sys.stderr)
         self.Lambda = 0 
         ll = fopt(result.x[0:self.n],self)
         #print('ll penalty',result.fun,ld,ll-ll_nopenalty,result.fun-ll,diffvalues,'meancn',meancn,varcn,file=sys.stderr)
-        print('ll penalty', result.fun, ld, ll-ll_nopenalty, result.fun-ll, diffvalues, 'meancn', meancn, varcn, file=sys.stdout)
+        print(f'Penalty Likelihood - Lambda {ld}:', result.fun, ll-ll_nopenalty, result.fun-ll, diffvalues, 'meancn', meancn, varcn, "\n", file=sys.stdout)
         
         if abs(prev-result.fun)/(step*result.fun) < 1e-7: 
             print('break loop', abs(prev-result.fun)/(step*result.fun))
@@ -167,7 +168,7 @@ def convert_integerCN(self, result):
         if pair[1] > bestpair[1]: 
             bestpair = pair
 
-    print('mean', meancn, scalefactor, clusters, bestpair)
+    ###print('mean', meancn, scalefactor, clusters, bestpair)
 
     for CN in [0, self.refCN-1, self.refCN, self.refCN+1]:
         scalefactor = CN/bestpair[0]
@@ -178,8 +179,8 @@ def convert_integerCN(self, result):
             newcn = [self.refCN for i in range(self.n)]
 
         delta, a, b, current = local_updates(newcn, self, update=True, DEBUG=False, order='optimized')
-        print(CN, 'local', delta, a, b, current, fopt(newcn,self), newcn)
-        print(CN, 'error', self.n, sum([ math.ceil(abs(newcn[i]-self.trueCN[i])/10) for i in range(self.n)]))
+        ###print(CN, 'local', delta, a, b, current, fopt(newcn,self), newcn)
+        ###print(CN, 'error', self.n, sum([ math.ceil(abs(newcn[i]-self.trueCN[i])/10) for i in range(self.n)]))
 
 
 
@@ -192,6 +193,7 @@ def best_fractional(self, minCN=1.01, maxCN=10.01, control=None):
     self.cn_bounds = [(minCN,maxCN) for i in range(self.n)]
     self.graph = pairwise_graph(self)
 
+    ### Joint likelihood function
     x0 = [self.refCN] * self.n
     result0 = opt.minimize(fopt,
                            x0,
@@ -200,13 +202,15 @@ def best_fractional(self, minCN=1.01, maxCN=10.01, control=None):
                            args=(self),
                            method='L-BFGS-B') # Nelder-Mead
     
-    print('no-penalty', round(result0.fun,3), '\n', 'CN-vector', ' '.join([str(a) for a in sorted(result0.x)]),'\n')
+    print('\nNo-penalty likelihood:', round(result0.fun, 3))
+    print('No-penalty CN-vector:', ' '.join([str(a) for a in sorted(result0.x)]), sep='\n')
     ll_nopenalty = result0.fun
     
+    print("\nCompare results:")
     self.compare = sorted([[result0.x[i], self.trueCN[i],i] for i in range(self.n)])
     for i in range(self.n):
-        print(self.compare[i],end=' ')
-        print()
+        print(self.compare[i])
+    print()
     self.order = [self.compare[i][2] for i in range(self.n)]
 
     ### Penalized likelihood function
@@ -225,16 +229,16 @@ def best_fractional(self, minCN=1.01, maxCN=10.01, control=None):
     
     meancn = np.mean(result.x[0:self.n])
     varcn = np.var(result.x[0:self.n])
-    scalefactor = self.refCN/meancn
+    scalefactor = self.refCN / meancn
 
     for i in range(self.n): 
         result.x[i] *= scalefactor
-    print('mean', meancn, 'var', varcn, scalefactor)
+    ###print('mean', meancn, 'var', varcn, scalefactor)
 
     self.bestcnvec = np.around(result.x[0:self.n],3)
-    print('contCN maxll', round(result.fun,3), '\n', 'CN-vector', ' '.join([str(a) for a in sorted(self.bestcnvec)]),'\n')
+    ###print('contCN maxll', round(result.fun,3), '\n', 'CN-vector', ' '.join([str(a) for a in sorted(self.bestcnvec)]),'\n')
     self.bestLL = result.fun
-    print('contCN maxll', round(result.fun,3), self.n, file=sys.stderr)#,np.around(result.x/low,2))
+    ###print('contCN maxll', round(result.fun,3), self.n, file=sys.stderr) #,np.around(result.x/low,2))
 
     ### Convert to integer CN estimate
     convert_integerCN(self, result)
@@ -246,12 +250,12 @@ def best_fractional(self, minCN=1.01, maxCN=10.01, control=None):
 
 def analyze_component(data1, refCN, c, comp, outfile=sys.stdout):
     """
-    For a given connected component, 
+    Perform all analyses on a given connected component and summarize accuracy statistics
     """
-    print('\n\nanalyzing connected component', c, comp, data1.n)
+    print('\nAnalyzing connected component', c, comp, data1.n)
     data1.refCN = refCN
-    data1.cn = [data1.refCN]*data1.n
 
+    data1.cn = [data1.refCN]*data1.n
     result, result0 = best_fractional(data1)
 
     data1.cn = [refCN]*data1.n
@@ -260,10 +264,10 @@ def analyze_component(data1, refCN, c, comp, outfile=sys.stdout):
     # data1.trueCN[i] is zero if missing
     errors = sum([ min(data1.trueCN[i],math.ceil(abs(data1.cn[i]-data1.trueCN[i])/10)) for i in range(data1.n)])
     errors1 = sum([ min(data1.trueCN[i],math.ceil(abs(data1.cn[i]-data1.trueCN[i]-1)/10)) for i in range(data1.n)]) ## all samples +1
-    print('stats',delta,current,fopt(data1.cn,data1), 'errors', min(errors,errors1), data1.n)
-    print('best',''.join([str(a) for a in data1.cn]))
-    print('trut',''.join([str(a) for a in data1.trueCN]))
-    print('diff',''.join([str(abs(data1.cn[i]-data1.trueCN[i])) for i in range(data1.n)]))
+    print('\nSTATS', delta, current, fopt(data1.cn,data1), 'errors', min(errors,errors1), data1.n)
+    print('- best:', ''.join([str(a) for a in data1.cn]))
+    print('- trut:', ''.join([str(a) for a in data1.trueCN]))
+    print('- diff:', ''.join([str(abs(data1.cn[i]-data1.trueCN[i])) for i in range(data1.n)]))
     errors2 = min(errors, errors1)
 
     print('#component', c, 'size', data1.n, 'likelihood', result.fun, file=outfile)
@@ -272,7 +276,8 @@ def analyze_component(data1, refCN, c, comp, outfile=sys.stdout):
 
     fval0 = fopt(data1.cn, data1); 
     fval1 = fopt(data1.trueCN, data1); 
-    print('----------testing trueCN likelihood ------------', fval0, fval1, '\n')
+    print('---------- Testing trueCN likelihood ------------')
+    print(fval0, fval1, sep='\n')
 
     return errors2
 
@@ -299,7 +304,8 @@ def main():
 
     outfile = open(args.outfile,'w')
     
-    # Benchmark: compute accuracy stats
+    # Estimate CN for each connected component found
+    # and compute accuracy stats
     stats = [0,0,0]
     c = 0
     for comp in data.comp_list:
