@@ -21,8 +21,8 @@ def parse_args():
                         help="path to reference FASTA")
     parser.add_argument("-t", "--hom-table", required=True,
                         help="path to homology table")
-    parser.add_argument("-x", "--exons-dir", required=True,
-                        help="path to exons directory")
+    parser.add_argument("-x", "--exons", required=True,
+                        help="path to full list of exons")
     parser.add_argument("-l", "--loci-name", required=True,
                         help="path to background depth regions")
     parser.add_argument("-r", "--loci-regions", required=True,
@@ -36,16 +36,18 @@ def parse_args():
     return args_parsed
 
 
-def create_custom_exon_file(loci, hg_ver, exons_dir):
+def create_custom_exon_file(loci, hg_ver, exons_fp):
     
-    path = os.path.dirname(os.path.abspath(__file__))
-    
+    exons_dir = os.path.dirname(exons_fp)
+    if not exons_dir:
+        exons_dir = os.path.dirname(os.path.abspath(__file__))
+
     # Obtain exons of loci of interest
     exons_bed = f'{exons_dir}/exons.{hg_ver}.{loci.upper()}.bed'
 
     if not os.path.isfile(exons_bed):
-        subprocess.call([f'head -n 1 {exons_dir}/exons.{hg_ver}.noalt.bed > {exons_bed}'], shell=True)    
-        subprocess.call([f'grep -P "\t{loci.upper()}_" {exons_dir}/exons.{hg_ver}.noalt.bed >> {exons_bed}'], shell=True)    
+        subprocess.call([f'head -n 1 {exons_fp} > {exons_bed}'], shell=True)    
+        subprocess.call([f'grep -P "\t{loci.upper()}_" {exons_fp} >> {exons_bed}'], shell=True)    
         print(f"Created custom exon file for {loci}.")
     else:
         print(f"Found an existing exon file: {exons_bed}.")
@@ -136,7 +138,7 @@ async def main():
     args = parse_args()
     
     # Prepare necessary files and directories
-    exons_fp = create_custom_exon_file(args.loci_name, args.hg_version, args.exons_dir)
+    exons_fp = create_custom_exon_file(args.loci_name, args.hg_version, args.exons)
     pool_dir = create_output_dirs(args.output, args.loci_name)
     inp_samples_fp = create_input_lists(args.input, args.output)
     
