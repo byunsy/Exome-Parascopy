@@ -1,3 +1,9 @@
+""" ===========================================================================
+TITLE   : run_paras_pool.py
+AUTHOR  : Sang Yoon Byun
+PURPOSE : aggregate reads of duplicated gene and extract read counts
+=========================================================================== """
+
 import os
 import asyncio
 import argparse
