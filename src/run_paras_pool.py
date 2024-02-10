@@ -1,7 +1,13 @@
 import os
+import asyncio
 import argparse
 import subprocess
 
+import run_getBamCounts as _bamcounts
+
+# -----------------------------------------------------------------------------
+# Procedures
+# -----------------------------------------------------------------------------
 
 def parse_args():
     
@@ -15,6 +21,8 @@ def parse_args():
                         help="path to reference FASTA")
     parser.add_argument("-t", "--hom-table", required=True,
                         help="path to homology table")
+    parser.add_argument("-x", "--exons-dir", required=True,
+                        help="path to exons directory")
     parser.add_argument("-l", "--loci-name", required=True,
                         help="path to background depth regions")
     parser.add_argument("-r", "--loci-regions", required=True,
@@ -28,14 +36,16 @@ def parse_args():
     return args_parsed
 
 
-def create_custom_exon_file(loci, hg_ver):
+def create_custom_exon_file(loci, hg_ver, exons_dir):
+    
+    path = os.path.dirname(os.path.abspath(__file__))
     
     # Obtain exons of loci of interest
-    exons_bed = f'exons/exons.{hg_ver}.{loci.upper()}.bed'
+    exons_bed = f'{exons_dir}/exons.{hg_ver}.{loci.upper()}.bed'
 
     if not os.path.isfile(exons_bed):
-        subprocess.call([f'head -n 1 exons/exons.{hg_ver}.noalt.bed > {exons_bed}'], shell=True)    
-        subprocess.call([f'grep -P "\t{loci.upper()}_" exons/exons.{hg_ver}.noalt.bed >> {exons_bed}'], shell=True)    
+        subprocess.call([f'head -n 1 {exons_dir}/exons.{hg_ver}.noalt.bed > {exons_bed}'], shell=True)    
+        subprocess.call([f'grep -P "\t{loci.upper()}_" {exons_dir}/exons.{hg_ver}.noalt.bed >> {exons_bed}'], shell=True)    
         print(f"Created custom exon file for {loci}.")
     else:
         print(f"Found an existing exon file: {exons_bed}.")
@@ -58,65 +68,107 @@ def create_output_dirs(output_dir, loci_name):
     return pooled_reads_dir
 
 
-def create_input_lists(input_list_fp):
+def create_input_lists(input_list_fp, outdir):
+    """ Read input filepath list and get input sample names """
+
     with open(input_list_fp, 'r') as inp:
         input_list = inp.read().splitlines()
     
     sample_list = [line.split("::")[1] for line in input_list]
 
-    with open("input.sample.list", "w") as sample_out:
+    with open(f"{outdir}/input.sample.list", "w") as sample_out:
         sample_out.writelines("\n".join(sample_list))
 
-    return "input.sample.list"
+    return f"{outdir}/input.sample.list"
         
 
-def run_paras_pool(args):
+async def run_paras_pool(inp_bam, args, sem):
+    """ Run Parascopy pool on the specified loci """
     
-    command = (
-        f'cat {args.input} | '
-        f'parallel -j {args.threads} '
-        f'./scripts/paras_pool.sh {{}} {args.loci_name.upper()} {args.loci_regions} {args.hom_table} {args.reference}'
-    )
-    subprocess.call([command], shell=True)    
-    #print(command)
+    path = os.path.dirname(os.path.abspath(__file__))
 
+    async with sem:
+        proc = await asyncio.create_subprocess_exec(
+                f'{path}/scripts/paras_pool.sh', 
+                inp_bam,
+                args.loci_name.upper(),
+                args.loci_regions,
+                args.hom_table,
+                args.reference,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE)
 
-def run_sort_fix_sort(sample_list, pool_dir, num_thread):
-    subprocess.call([f'cat {sample_list} | parallel -j {num_thread} ./scripts/sort_fix_sort.sh {{}} {pool_dir}'], shell=True)
+        stdout, stderr = await proc.communicate()
+
+        if stdout:
+            print(stdout.decode())
+        if stderr:
+            print(stderr.decode())
+    
+
+async def run_sort_fix_sort(sample_id, pool_dir, sem):
+    
+    path = os.path.dirname(os.path.abspath(__file__))
+
+    async with sem:
+        proc = await asyncio.create_subprocess_exec(
+                f'{path}/scripts/sort_fix_sort.sh', sample_id, pool_dir,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE)
+
+        stdout, stderr = await proc.communicate()
+
+        if stdout:
+            print(stdout.decode())
+        if stderr:
+            print(stderr.decode())
+
     subprocess.call([f'ls -d $PWD/{pool_dir}/*.final.bam > {pool_dir}/pooled.fp.list'], shell=True)
 
 
-def run_getBamCounts(pool_dir, args, exons):
-    
-    command = (
-        f'time python run_getBamCounts.py '
-        f'-i {pool_dir}/pooled.fp.list '
-        f'-o {args.output} '
-        f'-x {exons} '
-        f'-t {args.threads}'
-    )
-    subprocess.call([command], shell=True)
+# -----------------------------------------------------------------------------
+# Main Function
+# -----------------------------------------------------------------------------
 
-
-def main():
+async def main():
     
     # Parse arguments
     args = parse_args()
     
     # Prepare necessary files and directories
-    exons_fp = create_custom_exon_file(args.loci_name, args.hg_version)
+    exons_fp = create_custom_exon_file(args.loci_name, args.hg_version, args.exons_dir)
     pool_dir = create_output_dirs(args.output, args.loci_name)
-    inp_samples_fp = create_input_lists(args.input)
+    inp_samples_fp = create_input_lists(args.input, args.output)
+    
+    # list of input fp
+    with open(args.input, "r") as inpf1:
+        input_fp = inpf1.read().splitlines()
+
+    # list of input samples
+    with open(inp_samples_fp, "r") as inpf2:
+        inp_samples = inpf2.read().splitlines()
+       
+    MAX_PROCESSES = int(args.threads)
+    sem = asyncio.Semaphore(MAX_PROCESSES)
 
     # Run Parascopy pool
-    run_paras_pool(args)
+    await asyncio.gather(*[run_paras_pool(f, args, sem) for f in input_fp])
 
     # Run sort_fix_sort
-    run_sort_fix_sort(inp_samples_fp, pool_dir, args.threads)
+    await asyncio.gather(*[run_sort_fix_sort(sample_id, pool_dir, sem) for sample_id in inp_samples])
+    
+    # list of pooled reads BAM files
+    with open(f"{pool_dir}/pooled.fp.list", "r") as listfile:
+        pooled_f_list = listfile.read().splitlines()
+    
+    # run getBamCounts
+    print(f"Asynchronous getBamCounts() started with {MAX_PROCESSES} processes.\n")
+    await asyncio.gather(*[_bamcounts.proc_count(bam_fp, sem, exons_fp, args.output) for bam_fp in pooled_f_list]) 
+    _bamcounts.proc_merge(args.output)
 
-    # run_getBamCounts.py
-    run_getBamCounts(pool_dir, args, exons_fp)
-
+    print(f"Completed extracting pooled read counts for {args.loci_name}.")
+    
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
+
