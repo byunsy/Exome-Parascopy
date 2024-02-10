@@ -25,12 +25,15 @@ python run_paras_pool.py \
 -o results-EUR-SMN1 \
 -f data/GCA_000001405.15_GRCh38_no_alt_plus_hs38d1_analysis_set.fna \
 -t data/homology_table/hg38.bed.gz \
+-x data/exons \
 -g hg38 \
 -l SMN1 \
 -r chr5:70895669-70958942 \
 -@ 16
 ```
 Here, it is important that each line of input list must contain filepath and sample name separated by two colons. For example, every line must be in the following format: `data/bams/HG0001.exome.bam::HG001`.
+
+The exons directory specified in `-x` must contain a full list of exons (hg19 or hg38 or both). The default exon files (`exons.hg38.noalt.bed` and `exons.hg19.noalt.bed`) are provided in `src/exons` but they can also be customized based on one's needs.
 
 
 ### Reference set
