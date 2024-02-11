@@ -65,7 +65,7 @@ def create_output_dirs(output_dir, loci_name):
     
     # results output directory
     if not os.path.isdir(output_dir):
-        subprocess.call([f'mkdir {output_dir}'], shell=True)    
+        subprocess.call([f'mkdir -p {output_dir}'], shell=True)    
     
     # pooled_reads directory
     pooled_reads_dir = f'pooled-reads-bam-{loci_name.upper()}'
